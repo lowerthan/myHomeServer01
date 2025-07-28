@@ -15,6 +15,19 @@ def sha256_file(path):
             sha256.update(chunk)
     return sha256.hexdigest()
 
+def wait_until_stable(filepath, interval=0.5, tries=6):
+    last_size = -1
+    for _ in range(tries):
+        if not os.path.isfile(filepath):
+            time.sleep(interval)
+            continue
+        size = os.path.getsize(filepath)
+        if size == last_size and size > 0:
+            return True
+        last_size = size
+        time.sleep(interval)
+    return False
+
 def write_sha256_file(file_path, hash_value):
     sha_file_path = file_path + ".sha256"
     filename = os.path.basename(file_path)
@@ -43,7 +56,7 @@ def already_in_db(filename):
 def main():
     print(f"Watching {WATCH_DIR} ...")
     proc = subprocess.Popen(
-        ["inotifywait", "-m", "-e", "close_write,move", "--format", "%f", WATCH_DIR],
+        ["inotifywait", "-m", "-e", "moved_to", "--format", "%f", WATCH_DIR],
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL,
         text=True
@@ -67,7 +80,7 @@ def main():
         if os.path.exists(full_path + ".sha256"):
             continue
 
-        if os.path.isfile(full_path):
+        if os.path.isfile(full_path) and wait_until_stable(full_path):
             try:
                 hash_value = sha256_file(full_path)
                 insert_hash(filename, full_path, hash_value)
