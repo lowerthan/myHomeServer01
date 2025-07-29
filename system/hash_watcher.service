@@ -1,0 +1,15 @@
+[Unit]
+Description=Hash Watcher - auto .sha256 generator
+After=network.target
+
+[Service]
+Type=simple
+User=apache
+Group=apache
+ExecStart=/usr/bin/python3 /opt/filewatch/hash_watcher.py
+WorkingDirectory=/opt/filewatch/
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
